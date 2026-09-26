@@ -18,7 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-full flex flex-col bg-white text-[#0e0e12]">
         <Navbar />
         <main className="flex-1">{children}</main>
-        <KeyboardShortcuts />
+        <Footer />
       </body>
     </html>
   );
