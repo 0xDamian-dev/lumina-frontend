@@ -13,9 +13,9 @@ import {
   type RegistryEntry,
 } from "@/lib/registry";
 import { connectWallet, getConnectedAddress } from "@/lib/wallet";
-import { truncateAddress } from "@/lib/formatters";
 import RegisterContractForm from "@/components/RegisterContractForm";
 import OwnerContracts from "@/components/OwnerContracts";
+import RegistryEntryCard from "@/components/RegistryEntryCard";
 
 type Tab = "mine" | "all";
 
@@ -44,7 +44,7 @@ function RegistryContent() {
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
-  const [entries, setEntries] = useState<RegistryEntry[]>([]);
+  const [entries, setEntries] = useState<RegistryProfile[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
   const [entriesError, setEntriesError] = useState<string | null>(null);
 
@@ -52,7 +52,7 @@ function RegistryContent() {
   // Bumped to make the owner dashboard re-read after a registration.
   const [ownerRefresh, setOwnerRefresh] = useState(0);
 
-  const applyEntries = useCallback((result: RegistryEntry[]) => {
+  const applyEntries = useCallback((result: RegistryProfile[]) => {
     setEntries(result);
     setEntriesError(null);
     setEntriesLoading(false);

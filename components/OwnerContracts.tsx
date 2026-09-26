@@ -17,7 +17,9 @@ import {
   getStakeInfo,
   NETWORK_PASSPHRASE,
   REGISTRY_CONTRACT_ID,
-  RegistryEntry,
+  type RegistryEntry,
+  type RegistryReputation,
+  type SlashRecord,
   SOROBAN_RPC_URL,
   type StakeInfo,
 } from '@/lib/registry';
@@ -40,7 +42,8 @@ import {
   type ActivityState,
 } from '@/lib/contractActivity';
 import type { ContractEvent } from '@/lib/types';
-import { timeAgo, truncateAddress } from '@/lib/formatters';
+import { formatStroops, timeAgo, truncateAddress } from '@/lib/formatters';
+import { LifetimeSlashedBadge, StakeBadge, VerifiedBadge } from './RegistryBadges';
 
 const EVENTS_QUERY = `
   query ContractEvents($contractId: String!, $limit: Int) {
@@ -164,6 +167,10 @@ export default function OwnerContracts({
 
   const [history, setHistory] = useState<RegistryHistoryEntry[]>([]);
   const [activity, setActivity] = useState<Map<string, ActivityState>>(new Map());
+  const [reputations, setReputations] = useState<Map<string, RegistryReputation>>(new Map());
+  const [slashes, setSlashes] = useState<Record<string, SlashRecord[]>>({});
+  const [slashesLoading, setSlashesLoading] = useState<Record<string, boolean>>({});
+  const [slashErrors, setSlashErrors] = useState<Record<string, string>>({});
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -179,9 +186,9 @@ export default function OwnerContracts({
       setEntries(owned);
       setState('ready');
 
-      // History and activity are decoration: a registry read that succeeded
-      // should render even if the indexer is unreachable, so these are
-      // deliberately not chained onto the read above.
+      // History, activity and reputation are decoration: a registry read that
+      // succeeded should render even if the indexer is unreachable, so these
+      // are deliberately not chained onto the read above.
       loadHistory()
         .then(h => isCurrent() && setHistory(h))
         .catch(() => isCurrent() && setHistory([]));
@@ -360,6 +367,7 @@ export default function OwnerContracts({
       {entries.map(entry => {
         const entryHistory = historyFor(history, entry.contractId);
         const activityState = activity.get(entry.contractId) ?? 'unknown';
+        const reputation = reputations.get(entry.contractId);
         const isPending = pendingId === entry.contractId;
         const isOpen = expanded === entry.contractId;
         const info = stakeInfo[entry.contractId];
@@ -373,6 +381,9 @@ export default function OwnerContracts({
                   <span className="font-bold text-sm text-[#0e0e12]">{entry.name}</span>
                   <StatusPill active={entry.active} />
                   <ActivityPill state={activityState} />
+                  {reputation && reputation.verified && <VerifiedBadge />}
+                  {reputation && <StakeBadge stake={reputation.stake} />}
+                  {reputation && <LifetimeSlashedBadge slashedTotal={reputation.slashedTotal} />}
                 </div>
                 <p className="mono text-[11px] text-[#a6a3b0] mt-1 break-all">
                   {truncateAddress(entry.contractId, 6)}
@@ -438,7 +449,7 @@ export default function OwnerContracts({
             )}
 
             <button
-              onClick={() => setExpanded(isOpen ? null : entry.contractId)}
+              onClick={() => toggleHistory(entry)}
               aria-expanded={isOpen}
               className="mt-3 text-[11px] font-bold text-[#8b5cf6] hover:underline underline-offset-2"
             >
@@ -446,24 +457,62 @@ export default function OwnerContracts({
             </button>
 
             {isOpen && (
-              <ul className="mt-2.5 flex flex-col gap-1.5 border-t border-[#f0eff3] pt-2.5">
-                {entryHistory.length === 0 ? (
-                  <li className="text-xs text-[#a6a3b0]">
-                    No registry events indexed for this contract yet.
-                  </li>
-                ) : (
-                  entryHistory.map(item => (
-                    <li key={item.id} className="flex items-baseline justify-between gap-3">
-                      <span className="text-xs text-[#0e0e12]">
-                        {REGISTRY_EVENT_LABELS[item.type]}
-                      </span>
-                      <span className="mono text-[11px] text-[#a6a3b0] shrink-0">
-                        ledger {item.ledger} · {timeAgo(item.createdAt)}
-                      </span>
+              <div className="mt-2.5 border-t border-[#f0eff3] pt-2.5 flex flex-col gap-3">
+                <ul className="flex flex-col gap-1.5">
+                  {entryHistory.length === 0 ? (
+                    <li className="text-xs text-[#a6a3b0]">
+                      No registry events indexed for this contract yet.
                     </li>
-                  ))
-                )}
-              </ul>
+                  ) : (
+                    entryHistory.map(item => (
+                      <li key={item.id} className="flex items-baseline justify-between gap-3">
+                        <span className="text-xs text-[#0e0e12]">
+                          {REGISTRY_EVENT_LABELS[item.type]}
+                        </span>
+                        <span className="mono text-[11px] text-[#a6a3b0] shrink-0">
+                          ledger {item.ledger} · {timeAgo(item.createdAt)}
+                        </span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+
+                <section aria-label="Slash history">
+                  <h4 className="text-[11px] font-bold text-[#a6a3b0] uppercase tracking-[0.05em] mb-1.5">
+                    Slash history
+                  </h4>
+                  {reputation && reputation.slashedTotal > BigInt(0) && (
+                    <p className="text-xs text-[#6b6975] mb-1.5">
+                      Lifetime slashed: <span className="mono">{formatStroops(reputation.slashedTotal)} XLM</span>
+                    </p>
+                  )}
+                  {slashesLoading[entry.contractId] ? (
+                    <p className="text-xs text-[#a6a3b0]">Loading slash history…</p>
+                  ) : slashErrors[entry.contractId] ? (
+                    <p role="alert" className="text-xs text-[#dc2626]">
+                      {slashErrors[entry.contractId]}
+                    </p>
+                  ) : slashes[entry.contractId] && slashes[entry.contractId].length === 0 ? (
+                    <p className="text-xs text-[#a6a3b0]">No slashes recorded.</p>
+                  ) : (
+                    slashes[entry.contractId] && (
+                      <ul className="flex flex-col gap-1.5">
+                        {slashes[entry.contractId].map((slash, i) => (
+                          <li key={`${slash.slashedAt}-${i}`} className="flex items-baseline justify-between gap-3">
+                            <span className="text-xs text-[#0e0e12] min-w-0">
+                              <span className="mono">−{formatStroops(slash.amount)} XLM</span>
+                              <span className="text-[#6b6975]"> · {slash.reason}</span>
+                            </span>
+                            <span className="mono text-[11px] text-[#a6a3b0] shrink-0">
+                              ledger {slash.slashedAt.toLocaleString()}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  )}
+                </section>
+              </div>
             )}
           </div>
         );
