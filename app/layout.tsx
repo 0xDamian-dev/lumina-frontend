@@ -1,23 +1,36 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import Footer from "@/components/Footer";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
-const jetbrainsMono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
 
 export const metadata: Metadata = {
   title: "Lumina — Stellar Data Layer",
-  description: "Open-source event indexer and GraphQL data layer for the Stellar network.",
-  manifest: "/manifest.webmanifest",
-  themeColor: "#8b5cf6",
+  description:
+    "Open-source event indexer and GraphQL data layer for the Stellar network.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col bg-white text-[#0e0e12]">
         <Navbar />
         <KeyboardShortcuts />

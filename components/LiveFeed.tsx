@@ -1,5 +1,8 @@
 "use client";
 
+import { LiveFeedTransactionsDocument as RECENT_TRANSACTIONS_QUERY } from "@/lib/generated/graphql";
+import { LiveFeedNewTransactionDocument as NEW_TRANSACTION_SUBSCRIPTION } from "@/lib/generated/graphql";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Pause, Play } from "lucide-react";
@@ -8,30 +11,6 @@ import { useSubscription } from "@/lib/useSubscription";
 import type { Transaction } from "@/lib/types";
 import { truncateAddress, timeAgo } from "@/lib/formatters";
 import ConnectionIndicator from "./ConnectionIndicator";
-
-const TRANSACTION_FIELDS = `
-  hash
-  ledger
-  createdAt
-  sourceAccount
-  feeCharged
-  operationCount
-  successful
-`;
-
-const RECENT_TRANSACTIONS_QUERY = `
-  query LiveFeedTransactions($limit: Int) {
-    transactions(limit: $limit) {
-      items {${TRANSACTION_FIELDS}}
-    }
-  }
-`;
-
-const NEW_TRANSACTION_SUBSCRIPTION = `
-  subscription LiveFeedNewTransaction {
-    newTransaction {${TRANSACTION_FIELDS}}
-  }
-`;
 
 /**
  * How many transactions the feed keeps.
@@ -96,26 +75,16 @@ export default function LiveFeed() {
   }, [pendingCount]);
 
   const prependTransaction = useCallback((tx: Transaction) => {
-    if (pausedRef.current) {
-      if (txsRef.current.some(existing => existing.hash === tx.hash)) return;
-      if (seenWhilePausedRef.current.has(tx.hash)) return;
-
-      seenWhilePausedRef.current.add(tx.hash);
-      queuedRef.current = [tx, ...queuedRef.current].slice(0, MAX_FEED_LENGTH);
-      setPendingCount(count => count + 1);
-      return;
-    }
-
-    setTxs(current => {
+    setTxs((current) => {
       // The server may replay an item across a reconnect; a hash already at the
       // top must not appear twice.
-      if (current.some(existing => existing.hash === tx.hash)) return current;
+      if (current.some((existing) => existing.hash === tx.hash)) return current;
       return [tx, ...current].slice(0, MAX_FEED_LENGTH);
     });
     setLastUpdated(new Date());
   }, []);
 
-  const { state, failureReason, retry } = useSubscription<{ newTransaction: Transaction }>(
+  const { state, failureReason, retry } = useSubscription(
     NEW_TRANSACTION_SUBSCRIPTION,
     undefined,
     useCallback(
@@ -126,11 +95,12 @@ export default function LiveFeed() {
     ),
   );
 
-  const live = state === "connected" || state === "connecting" || state === "reconnecting";
+  const live =
+    state === "connected" || state === "connecting" || state === "reconnecting";
 
   const fetchRecent = useCallback(async () => {
     try {
-      const data = await gqlFetch<{ transactions: { items: Transaction[] } }>(
+      const data = await gqlFetch(
         PUBLIC_GRAPHQL_URL,
         RECENT_TRANSACTIONS_QUERY,
         { limit: SEED_LIMIT },
@@ -173,78 +143,57 @@ export default function LiveFeed() {
   const virtualRows = virtualizer.getVirtualItems();
 
   return (
-    <div className="rounded-xl border border-[#e5e3ea]">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e5e3ea] bg-[#fafafa] px-4 py-3">
-        <ConnectionIndicator state={state} failureReason={failureReason} onRetry={retry} />
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-[0.6875rem] text-[#a6a3b0]">Updated {timeAgo(lastUpdated.toISOString())}</span>
-          )}
-          <button
-            type="button"
-            aria-pressed={paused}
-            onClick={paused ? resumeFeed : pauseFeed}
-            className="relative inline-flex min-h-8 select-none items-center gap-1.5 rounded-lg border border-[#e5e3ea] bg-white py-1.5 pl-1.5 pr-2.5 text-xs font-semibold text-[#6b6975] hover:border-[#c4b5fd] hover:text-[#0e0e12]"
-          >
-            {paused ? <Play aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} /> : <Pause aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} />}
-            {paused ? `Resume feed${pendingCount > 0 ? ` (${pendingCount})` : ""}` : "Pause feed"}
-            <span className="absolute left-1/2 top-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-
-      <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {paused
-          ? `Live feed paused. ${pendingCount} ${pendingCount === 1 ? "update" : "updates"} waiting.`
-          : resumedCount > 0
-            ? `Live feed resumed. ${resumedCount} ${resumedCount === 1 ? "update" : "updates"} arrived while paused.`
-            : "Live feed running."}
+    <div className="rounded-xl border border-[#e5e3ea] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e3ea] bg-[#fafafa]">
+        <ConnectionIndicator
+          state={state}
+          failureReason={failureReason}
+          onRetry={retry}
+        />
+        {lastUpdated && (
+          <span className="text-[11px] text-[#a6a3b0]">
+            Updated {timeAgo(lastUpdated.toISOString())}
+          </span>
+        )}
       </div>
 
       {loading ? (
-        <div className="p-6 text-center text-[#a6a3b0] text-sm animate-pulse">Fetching live data...</div>
+        <div className="p-6 text-center text-[#a6a3b0] text-sm animate-pulse">
+          Fetching live data...
+        </div>
       ) : txs.length === 0 ? (
-        <div className="p-6 text-center text-[#a6a3b0] text-sm">No transactions found.</div>
+        <div className="p-6 text-center text-[#a6a3b0] text-sm">
+          No transactions found.
+        </div>
       ) : (
-        <div
-          ref={scrollRef}
-          role="list"
-          aria-label="Live transactions"
-          data-testid="live-feed-scroll"
-          data-retained-count={txs.length}
-          onFocusCapture={pauseFeed}
-          onPointerDownCapture={pauseFeed}
-          className="max-h-64 overflow-auto"
-        >
-          <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-            {virtualRows.map(virtualRow => {
-              const tx = txs[virtualRow.index];
-              return (
-                <div
-                  key={tx.hash}
-                  role="listitem"
-                  aria-setsize={txs.length}
-                  aria-posinset={virtualRow.index + 1}
-                  className="absolute left-0 top-0 flex w-full items-center gap-3 border-b border-[#f0eff3] px-4 py-2.5"
-                  style={{ height: ROW_HEIGHT, transform: `translateY(${virtualRow.start}px)` }}
-                >
-                  <span aria-hidden="true" className={`size-[7px] shrink-0 rounded-full ${tx.successful ? "bg-[#16a34a]" : "bg-[#dc2626]"}`} />
-                  <a
-                    href={`https://stellar.expert/explorer/public/tx/${tx.hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={tx.hash}
-                    className="mono text-xs text-[#7c3aed] hover:text-[#6d28d9] hover:underline"
-                  >
-                    {truncateAddress(tx.hash, 5)}
-                  </a>
-                  <span className="mono hidden min-w-0 text-xs text-[#a6a3b0] sm:inline">{truncateAddress(tx.sourceAccount)}</span>
-                  <span className="ml-auto shrink-0 text-[0.6875rem] text-[#c3c1cb]">{timeAgo(tx.createdAt)}</span>
-                  <span className="shrink-0 rounded bg-[#f6f5f8] px-1.5 py-0.5 text-[0.6875rem] tabular-nums text-[#6b6975]">{tx.operationCount} ops</span>
-                </div>
-              );
-            })}
-          </div>
+        <div>
+          {txs.map((tx) => (
+            <div
+              key={tx.hash}
+              className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f0eff3] last:border-0"
+            >
+              <span
+                className={`w-[7px] h-[7px] rounded-full shrink-0 ${tx.successful ? "bg-[#16a34a]" : "bg-[#dc2626]"}`}
+              />
+              <a
+                href={`https://stellar.expert/explorer/public/tx/${tx.hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mono text-xs text-[#7c3aed] hover:text-[#6d28d9] hover:underline transition-colors"
+              >
+                {truncateAddress(tx.hash, 5)}
+              </a>
+              <span className="text-xs text-[#a6a3b0] mono">
+                {truncateAddress(tx.sourceAccount)}
+              </span>
+              <span className="ml-auto text-[11px] text-[#c3c1cb]">
+                {timeAgo(tx.createdAt)}
+              </span>
+              <span className="text-[11px] bg-[#f6f5f8] text-[#6b6975] px-1.5 py-0.5 rounded">
+                {tx.operationCount} ops
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

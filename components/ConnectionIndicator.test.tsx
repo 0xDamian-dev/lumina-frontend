@@ -28,7 +28,9 @@ describe("ConnectionIndicator", () => {
     // showing a green LIVE dot.
     expect(labelFor("disconnected")).toBe("POLLING");
     cleanup();
-    expect(labelFor("unsupported")).toContain("POLLING");
+    expect(labelFor("unsupported")).toBe(
+      "POLLINGlive updates not supported here",
+    );
   });
 
   it("exposes the state to assistive tech, not only as a colour", () => {
@@ -77,10 +79,18 @@ describe("ConnectionIndicator", () => {
 
   it("says why the feed fell back and offers a retry", () => {
     const onRetry = vi.fn();
-    render(<ConnectionIndicator state="disconnected" failureReason="refused" onRetry={onRetry} />);
+    render(
+      <ConnectionIndicator
+        state="disconnected"
+        failureReason="refused"
+        onRetry={onRetry}
+      />,
+    );
 
-    expect(screen.getByTestId("connection-reason").textContent).toBe("server refused the connection");
-    fireEvent.click(screen.getByRole("button", { name: "Retry connection" }));
+    expect(screen.getByTestId("connection-reason").textContent).toBe(
+      "server refused the connection",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
