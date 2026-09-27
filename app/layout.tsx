@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import Footer from "@/components/Footer";
+import NetworkStatus from "@/components/NetworkStatus";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <KeyboardShortcuts />
         <main className="flex-1">{children}</main>
         <Footer />
+        <NetworkStatus />
       </body>
     </html>
   );

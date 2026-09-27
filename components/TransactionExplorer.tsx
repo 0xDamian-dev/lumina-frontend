@@ -22,6 +22,35 @@ import {
   type FilterPreset,
 } from "@/lib/filterPresets";
 import TransactionFilters from "./TransactionFilters";
+import TransactionRow from "./TransactionRow";
+import BackendUnavailable from "./BackendUnavailable";
+
+const PAGE_QUERY = `
+  query TransactionPage($limit: Int, $cursor: String) {
+    transactions(limit: $limit, cursor: $cursor) {
+      items {
+        hash
+        ledger
+        createdAt
+        sourceAccount
+        feeCharged
+        operationCount
+        successful
+      }
+      pageInfo {
+        hasNextPage
+        cursor
+      }
+    }
+  }
+`;
+
+interface TransactionPage {
+  transactions: {
+    items: Transaction[];
+    pageInfo: { hasNextPage: boolean; cursor: string | null };
+  };
+}
 
 export const PAGE_SIZE = 50;
 
@@ -130,6 +159,12 @@ export default function TransactionExplorer({
     else for (const tx of initial) loadedHashes.current.add(tx.hash);
   }, [initial, loadMore]);
 
+  useEffect(() => {
+    const retry = () => { if (error || txs.length === 0) void loadMore(); };
+    window.addEventListener("lumina:online", retry);
+    return () => window.removeEventListener("lumina:online", retry);
+  }, [error, txs.length, loadMore]);
+
   const filtered = useMemo(() => applyFilters(txs, filters), [txs, filters]);
 
   // Chase more pages when a filter has thinned the result set out.
@@ -211,12 +246,43 @@ export default function TransactionExplorer({
         )}
       </div>
 
-      <VirtualizedTransactionTable
-        transactions={filtered}
-        emptyMessage={
-          loading
-            ? null
-            : txs.length === 0
+      <div
+        ref={scrollRef}
+        data-testid="transaction-scroll"
+        className="rounded-xl border border-[#e5e3ea] overflow-auto max-h-[70vh]"
+      >
+        <table className="w-full text-sm border-collapse">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th className={`${th} w-6`} />
+              <th className={th}>Hash</th>
+              <th className={th}>Ledger</th>
+              <th className={th}>Source</th>
+              <th className={th}>Ops</th>
+              <th className={th}>Fee</th>
+              <th className={th}>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paddingTop > 0 && (
+              <tr aria-hidden="true">
+                <td colSpan={7} style={{ height: paddingTop }} />
+              </tr>
+            )}
+            {virtualRows.map(virtualRow => (
+              <TransactionRow key={filtered[virtualRow.index].hash} tx={filtered[virtualRow.index]} />
+            ))}
+            {paddingBottom > 0 && (
+              <tr aria-hidden="true">
+                <td colSpan={7} style={{ height: paddingBottom }} />
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {filtered.length === 0 && !loading && !error && (
+          <div className="p-8 text-center text-[#a6a3b0] text-sm">
+            {txs.length === 0
               ? "No transactions indexed yet."
               : "No transactions match these filters."
         }
@@ -225,7 +291,9 @@ export default function TransactionExplorer({
       </VirtualizedTransactionTable>
 
       <div className="mt-4 flex items-center justify-center gap-3">
-        {error ? (
+        {error && txs.length === 0 ? (
+          <BackendUnavailable onRetry={() => { setHasNextPage(true); void loadMore(); }} />
+        ) : error ? (
           <>
             <span className="text-[13px] text-[#dc2626]">{error}</span>
             <button

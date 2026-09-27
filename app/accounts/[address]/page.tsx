@@ -8,20 +8,26 @@ import CopyAddressButton from "@/components/CopyAddressButton";
 import AccountActivityFeed from "@/components/AccountActivityFeed";
 import AccountTransactionList from "@/components/AccountTransactionList";
 import AccountOperationList from "@/components/AccountOperationList";
+import BackendUnavailable from "@/components/BackendUnavailable";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-async function getAccount(address: string): Promise<Account | null> {
+async function getAccount(address: string): Promise<{ account: Account | null; unavailable: boolean }> {
   try {
-    const data = await gqlFetch(GRAPHQL_URL, ACCOUNT_QUERY, { address });
-    return data.account;
+    const data = await gqlFetch<{ account: Account | null }>(GRAPHQL_URL, ACCOUNT_QUERY, { address });
+    return { account: data.account, unavailable: false };
   } catch {
-    return null;
+    return { account: null, unavailable: true };
   }
 }
 
-const th =
-  "text-left text-[11px] tracking-[0.06em] uppercase text-[#a6a3b0] px-3 py-2.5 border-b border-[#e5e3ea] bg-[#fafafa]";
+export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
+  const { address } = await params;
+  return { title: `Account ${address} | Lumina`, description: `Stellar account ${address} and its indexed activity.` };
+}
+
+const th = "text-left text-[11px] tracking-[0.06em] uppercase text-[#a6a3b0] px-3 py-2.5 border-b border-[#e5e3ea] bg-[#fafafa]";
 const stat = "bg-[#fafafa] border border-[#e5e3ea] rounded-xl p-4";
 const statLabel = "text-[11px] text-[#a6a3b0] uppercase tracking-[0.05em]";
 const statValue = "mono text-sm mt-1";
@@ -32,11 +38,8 @@ export default async function AccountPage({
   params: Promise<{ address: string }>;
 }) {
   const { address } = await params;
-
-  const validation = validateStellarAddress(address);
-
-  // Only hit the API when the address is structurally valid.
-  const account = validation.valid ? await getAccount(address) : null;
+  const result = await getAccount(address);
+  const account = result.account;
 
   const flagTags = account
     ? [
@@ -56,16 +59,8 @@ export default async function AccountPage({
       >
         &larr; Back to Explorer
       </Link>
-
-      {!validation.valid && validation.reason === "malformed" ? (
-        <div className="p-8 rounded-xl border border-[#fde68a] bg-[#fffbeb] text-center">
-          <p className="text-[#b45309] font-semibold mb-2">Invalid Address</p>
-          <p className="text-[#a6a3b0] text-sm max-w-md mx-auto mb-1">
-            <span className="mono text-[#6b6975] break-all">{address}</span> is not a valid Stellar address.
-          </p>
-          <p className="text-[#92400e] text-xs mt-2">{validation.hint}</p>
-          <p className="text-[#a6a3b0] text-xs mt-3">Stellar addresses start with <span className="mono">G</span> and are exactly 56 characters.</p>
-        </div>
+      {result.unavailable ? (
+        <BackendUnavailable />
       ) : !account ? (
         <div className="p-8 rounded-xl border border-[#fecaca] text-center">
           <p className="text-[#dc2626] font-semibold mb-2">Account Not Found</p>

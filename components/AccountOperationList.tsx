@@ -9,15 +9,34 @@ import { AccountOperationsDocument as ACCOUNT_OPERATIONS_QUERY } from "@/lib/gen
  * is the explorer's pagination approach exactly: follow the cursor, accumulate
  * pages, dedupe by id, and say so when the list is truncated.
  */
-import { useCallback, useState } from "react";
-import { gqlFetch, PUBLIC_GRAPHQL_URL } from "@/lib/graphql";
-import type { Operation } from "@/lib/types";
-import {
-  formatOperationType,
-  timeAgo,
-  truncateAddress,
-} from "@/lib/formatters";
-import LoadMoreFooter from "./LoadMoreFooter";
+import { useCallback, useState } from 'react';
+import { gqlFetch, PUBLIC_GRAPHQL_URL } from '@/lib/graphql';
+import type { Operation } from '@/lib/types';
+import { formatOperationType, truncateAddress } from '@/lib/formatters';
+import TimeAgo from './TimeAgo';
+import LoadMoreFooter from './LoadMoreFooter';
+
+const ACCOUNT_OPERATIONS_QUERY = `
+  query AccountOperations($address: String!, $limit: Int, $cursor: String) {
+    operations(account: $address, limit: $limit, cursor: $cursor) {
+      items {
+        id
+        type
+        createdAt
+        transactionHash
+        sourceAccount
+        from
+        to
+        amount
+        asset
+      }
+      pageInfo {
+        hasNextPage
+        cursor
+      }
+    }
+  }
+`;
 
 const PAGE_SIZE = 25;
 /** Matches the seed the server component renders. */
@@ -134,9 +153,7 @@ export default function AccountOperationList({
                     <span className="text-[#a6a3b0]">—</span>
                   )}
                 </td>
-                <td className="py-2.5 px-3 text-xs text-[#c3c1cb]">
-                  {timeAgo(op.createdAt)}
-                </td>
+                <td className="py-2.5 px-3 text-xs text-[#c3c1cb]"><TimeAgo isoString={op.createdAt} /></td>
               </tr>
             ))}
           </tbody>

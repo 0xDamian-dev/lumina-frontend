@@ -5,7 +5,8 @@ import { AccountActivityDocument as ACCOUNT_ACTIVITY_SUBSCRIPTION } from "@/lib/
 import { useCallback, useState } from "react";
 import { useSubscription } from "@/lib/useSubscription";
 import type { Operation } from "@/lib/types";
-import { truncateAddress, timeAgo } from "@/lib/formatters";
+import { truncateAddress } from "@/lib/formatters";
+import TimeAgo from "./TimeAgo";
 import ConnectionIndicator from "./ConnectionIndicator";
 
 /** Cap, for the same reason `LiveFeed` has one: a long-lived tab. */
@@ -100,9 +101,7 @@ export default function AccountActivityFeed({ address }: { address: string }) {
                   {operation.amount} {operation.asset ?? "XLM"}
                 </span>
               )}
-              <span className="ml-auto text-[11px] text-[#c3c1cb]">
-                {timeAgo(operation.createdAt)}
-              </span>
+              <span className="ml-auto text-[11px] text-[#c3c1cb]"><TimeAgo isoString={operation.createdAt} /></span>
             </div>
           ))
         )}

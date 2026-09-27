@@ -17,6 +17,7 @@ import { connectWallet, getConnectedAddress } from "@/lib/wallet";
 import RegisterContractForm from "@/components/RegisterContractForm";
 import OwnerContracts from "@/components/OwnerContracts";
 import RegistryEntryCard from "@/components/RegistryEntryCard";
+import BackendUnavailable from "@/components/BackendUnavailable";
 
 type Tab = "mine" | "all";
 
@@ -109,6 +110,12 @@ function RegistryContent() {
       cancelled = true;
     };
   }, [category, applyEntries, applyEntriesError]);
+
+  useEffect(() => {
+    const reconnect = () => { void loadEntries(); };
+    window.addEventListener("lumina:online", reconnect);
+    return () => window.removeEventListener("lumina:online", reconnect);
+  }, [loadEntries]);
 
   useEffect(() => {
     let cancelled = false;
@@ -249,7 +256,7 @@ function RegistryContent() {
           ) : entriesLoading ? (
             <p className="text-sm text-[#a6a3b0]">Loading registry entries…</p>
           ) : entriesError ? (
-            <p className="text-sm text-[#dc2626]">{entriesError}</p>
+            <BackendUnavailable onRetry={loadEntries} />
           ) : entries.length === 0 ? (
             <p className="text-sm text-[#a6a3b0]">
               {category

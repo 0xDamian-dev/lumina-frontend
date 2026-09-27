@@ -1,7 +1,12 @@
 import { ContractEventsDocument as EVENTS_QUERY } from "@/lib/generated/graphql";
 import { gqlFetch, GRAPHQL_URL } from "@/lib/graphql";
 import type { ContractEvent } from "@/lib/types";
-import { timeAgo, truncateAddress } from "@/lib/formatters";
+import { truncateAddress } from "@/lib/formatters";
+import TimeAgo from "@/components/TimeAgo";
+import BackendUnavailable from "@/components/BackendUnavailable";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Contract Events | Lumina", description: "Browse Soroban contract events indexed by Lumina." };
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +22,12 @@ interface EventsPageData {
   };
 }
 
-async function getEvents(contractId: string, topic: string, cursor: string): Promise<EventsPageData["events"]> {
+async function getEvents(contractId: string): Promise<{ events: ContractEvent[]; unavailable: boolean }> {
   try {
-    const data = await gqlFetch(GRAPHQL_URL, EVENTS_QUERY, {
-      contractId,
-      limit: 20,
-    });
-    return data.events.items;
+    const data = await gqlFetch<{ events: { items: ContractEvent[] } }>(GRAPHQL_URL, EVENTS_QUERY, { contractId, limit: 20 });
+    return { events: data.events.items, unavailable: false };
   } catch {
-    return { items: [] };
+    return { events: [], unavailable: true };
   }
 }
 
@@ -39,13 +41,7 @@ export default async function EventsPage({
 }) {
   const { contractId: rawContractId } = await searchParams;
   const contractId = rawContractId?.trim() || DEFAULT_CONTRACT_ID;
-  const topic = rawTopic?.trim() || "";
-  const cursor = rawCursor?.trim() || "";
-  const page = await getEvents(contractId, topic, cursor);
-  const events = page.items;
-  const nextHref = page.pageInfo?.hasNextPage && page.pageInfo.cursor
-    ? `/events?${new URLSearchParams({ contractId, ...(topic ? { topic } : {}), cursor: page.pageInfo.cursor }).toString()}`
-    : null;
+  const result = await getEvents(contractId);
 
   return (
     <div className="max-w-[1160px] mx-auto px-4 sm:px-7 py-12">
@@ -72,7 +68,7 @@ export default async function EventsPage({
       </form>
 
       <div className="rounded-xl border border-[#e5e3ea] overflow-x-auto">
-        {events.length === 0 ? (
+        {result.unavailable ? <BackendUnavailable /> : result.events.length === 0 ? (
           <div className="p-8 text-center text-[#a6a3b0] text-sm">
             No events indexed for this contract yet. Event indexing is opt-in on
             the indexer (<span className="mono">INDEXED_CONTRACT_IDS</span>/
@@ -91,14 +87,9 @@ export default async function EventsPage({
               </tr>
             </thead>
             <tbody>
-              {events.map((ev) => (
-                <tr
-                  key={ev.id}
-                  className="border-b border-[#f0eff3] last:border-0"
-                >
-                  <td className="py-2.5 px-3 mono text-xs text-[#7c3aed]">
-                    {truncateAddress(ev.contractId, 6)}
-                  </td>
+              {result.events.map(ev => (
+                <tr key={ev.id} className="border-b border-[#f0eff3] last:border-0">
+                  <td className="py-2.5 px-3 mono text-xs text-[#7c3aed]">{truncateAddress(ev.contractId, 6)}</td>
                   <td className="py-2.5 px-3">
                     {ev.topics[0] && (
                       <span className="text-[11px] font-semibold bg-[#f3effe] text-[#6d28d9] rounded-md px-2 py-[3px]">
@@ -109,15 +100,9 @@ export default async function EventsPage({
                       </span>
                     )}
                   </td>
-                  <td className="py-2.5 px-3 mono text-xs text-[#6b6975] max-w-[280px] truncate">
-                    {ev.value ?? "—"}
-                  </td>
-                  <td className="py-2.5 px-3 mono text-xs text-[#6b6975]">
-                    {ev.ledger.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 px-3 text-xs text-[#c3c1cb]">
-                    {timeAgo(ev.createdAt)}
-                  </td>
+                  <td className="py-2.5 px-3 mono text-xs text-[#6b6975] max-w-[280px] truncate">{ev.value ?? "—"}</td>
+                  <td className="py-2.5 px-3 mono text-xs text-[#6b6975]">{ev.ledger.toLocaleString()}</td>
+                  <td className="py-2.5 px-3 text-xs text-[#c3c1cb]"><TimeAgo isoString={ev.createdAt} /></td>
                 </tr>
               ))}
             </tbody>

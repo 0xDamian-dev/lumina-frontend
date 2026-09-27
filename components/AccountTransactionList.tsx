@@ -12,11 +12,26 @@ import { AccountTransactionsDocument as ACCOUNT_TRANSACTIONS_QUERY } from "@/lib
  * *approach* — an explicit Load more, an honest truncation label, and an
  * end-of-results state — on the one read shape offered here.
  */
-import { useCallback, useState } from "react";
-import { gqlFetch, PUBLIC_GRAPHQL_URL } from "@/lib/graphql";
-import type { Transaction } from "@/lib/types";
-import { timeAgo, truncateAddress } from "@/lib/formatters";
-import LoadMoreFooter from "./LoadMoreFooter";
+import { useCallback, useState } from 'react';
+import { gqlFetch, PUBLIC_GRAPHQL_URL } from '@/lib/graphql';
+import type { Transaction } from '@/lib/types';
+import { truncateAddress } from '@/lib/formatters';
+import TimeAgo from './TimeAgo';
+import LoadMoreFooter from './LoadMoreFooter';
+
+const ACCOUNT_TRANSACTIONS_QUERY = `
+  query AccountTransactions($address: String!, $limit: Int) {
+    account(address: $address) {
+      transactions(limit: $limit) {
+        hash
+        ledger
+        createdAt
+        sourceAccount
+        operationCount
+      }
+    }
+  }
+`;
 
 /** The seed the server component renders; the first client fetch widens past it. */
 export const SEED_LIMIT = 10;
@@ -114,9 +129,7 @@ export default function AccountTransactionList({
                   {tx.ledger.toLocaleString()}
                 </td>
                 <td className="py-2.5 px-3 text-xs">{tx.operationCount}</td>
-                <td className="py-2.5 px-3 text-xs text-[#c3c1cb]">
-                  {timeAgo(tx.createdAt)}
-                </td>
+                <td className="py-2.5 px-3 text-xs text-[#c3c1cb]"><TimeAgo isoString={tx.createdAt} /></td>
               </tr>
             ))}
           </tbody>

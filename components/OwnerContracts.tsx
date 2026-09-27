@@ -43,23 +43,27 @@ import {
   ACTIVITY_LABELS,
   probeContractActivity,
   type ActivityState,
-} from "@/lib/contractActivity";
-import type { ContractEvent } from "@/lib/types";
-import { formatStroops, timeAgo, truncateAddress } from "@/lib/formatters";
-import {
-  LifetimeSlashedBadge,
-  StakeBadge,
-  VerifiedBadge,
-} from "./RegistryBadges";
+} from '@/lib/contractActivity';
+import type { ContractEvent } from '@/lib/types';
+import { formatStroops, truncateAddress } from '@/lib/formatters';
+import TimeAgo from './TimeAgo';
+import { LifetimeSlashedBadge, StakeBadge, VerifiedBadge } from './RegistryBadges';
+import BackendUnavailable from './BackendUnavailable';
 
-async function fetchEvents(
-  contractId: string,
-  limit: number,
-): Promise<ContractEvent[]> {
-  const data = await gqlFetch(PUBLIC_GRAPHQL_URL, EVENTS_QUERY, {
-    contractId,
-    limit,
-  });
+const EVENTS_QUERY = `
+  query ContractEvents($contractId: String!, $limit: Int) {
+    events(contractId: $contractId, limit: $limit) {
+      items { id type contractId ledger createdAt pagingToken topics value }
+    }
+  }
+`;
+
+async function fetchEvents(contractId: string, limit: number): Promise<ContractEvent[]> {
+  const data = await gqlFetch<{ events: { items: ContractEvent[] } }>(
+    PUBLIC_GRAPHQL_URL,
+    EVENTS_QUERY,
+    { contractId, limit }
+  );
   return data.events.items;
 }
 
@@ -168,8 +172,7 @@ export default function OwnerContracts({
   onChanged,
 }: OwnerContractsProps) {
   const [entries, setEntries] = useState<RegistryEntry[]>([]);
-  const [state, setState] = useState<LoadState>("loading");
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<LoadState>('loading');
 
   const [history, setHistory] = useState<RegistryHistoryEntry[]>([]);
   const [activity, setActivity] = useState<Map<string, ActivityState>>(
@@ -224,14 +227,9 @@ export default function OwnerContracts({
     [loadHistory, loadActivity, loadStake],
   );
 
-  const applyError = useCallback((err: unknown, isCurrent: () => boolean) => {
+  const applyError = useCallback((_err: unknown, isCurrent: () => boolean) => {
     if (!isCurrent()) return;
-    setError(
-      err instanceof Error
-        ? err.message
-        : "Couldn't read your contracts from the registry.",
-    );
-    setState("error");
+    setState('error');
   }, []);
 
   useEffect(() => {
@@ -394,18 +392,8 @@ export default function OwnerContracts({
     return <p className="text-sm text-[#a6a3b0]">Loading your contracts…</p>;
   }
 
-  if (state === "error") {
-    return (
-      <div className="border border-[#fecaca] bg-[#fef2f2] rounded-xl p-4">
-        <p className="text-sm text-[#dc2626] mb-2">{error}</p>
-        <button
-          onClick={retry}
-          className="text-xs font-bold text-[#dc2626] underline underline-offset-2"
-        >
-          Try again
-        </button>
-      </div>
-    );
+  if (state === 'error') {
+    return <BackendUnavailable onRetry={retry} />;
   }
 
   if (entries.length === 0) {
@@ -557,7 +545,7 @@ export default function OwnerContracts({
                           {REGISTRY_EVENT_LABELS[item.type]}
                         </span>
                         <span className="mono text-[11px] text-[#a6a3b0] shrink-0">
-                          ledger {item.ledger} · {timeAgo(item.createdAt)}
+                          ledger {item.ledger} · <TimeAgo isoString={item.createdAt} />
                         </span>
                       </li>
                     ))
