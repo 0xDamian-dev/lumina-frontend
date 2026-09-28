@@ -32,7 +32,7 @@ export default function RegistryPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 text-center text-[#a6a3b0] text-sm">
+        <div className="p-8 text-center text-[var(--color-text-muted)] text-sm">
           Loading registry…
         </div>
       }
@@ -126,6 +126,11 @@ function RegistryContent() {
   }, [loadEntries]);
 
   useEffect(() => {
+    // No persisted session means there is nothing to confirm — and confirming
+    // is what would pull the wallet kit in. Skipping it keeps the kit out of
+    // the browser entirely for a visitor who never connects.
+    if (!readPersistedSession()) return;
+
     let cancelled = false;
 
     getConnectedWallet().then((session) => {
@@ -295,16 +300,16 @@ function RegistryContent() {
                 onChanged={loadEntries}
               />
             ) : (
-              <p className="text-sm text-[#a6a3b0]">
+              <p className="text-sm text-[var(--color-text-muted)]">
                 Connect a wallet to see the contracts you registered.
               </p>
             )
           ) : entriesLoading ? (
-            <p className="text-sm text-[#a6a3b0]">Loading registry entries…</p>
+            <p className="text-sm text-[var(--color-text-muted)]">Loading registry entries…</p>
           ) : entriesError ? (
             <BackendUnavailable onRetry={loadEntries} />
           ) : entries.length === 0 ? (
-            <p className="text-sm text-[#a6a3b0]">
+            <p className="text-sm text-[var(--color-text-muted)]">
               {category
                 ? `No active ${CATEGORY_LABELS[category]} contracts.`
                 : "No contracts registered yet."}
@@ -341,7 +346,7 @@ function TabButton({
       onClick={onClick}
       className={`text-sm font-extrabold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 ${
         active
-          ? "bg-[var(--color-accent-3)] text-[var(--color-accent-11)]"
+          ? "bg-[var(--color-accent-surface)] text-[var(--color-accent-text)]"
           : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
       }`}
     >
@@ -365,7 +370,7 @@ function CategoryChip({
       onClick={onClick}
       className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${
         active
-          ? "bg-[var(--color-accent-3)] border-[var(--color-accent-9)] text-[var(--color-accent-11)]"
+          ? "bg-[var(--color-accent-surface)] border-[var(--color-accent-fill)] text-[var(--color-accent-text)]"
           : "border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
       }`}
     >

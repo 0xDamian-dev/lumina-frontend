@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { AccountDetailDocument as ACCOUNT_QUERY } from "@/lib/generated/graphql";
 import { gqlFetch, GRAPHQL_URL } from "@/lib/graphql";
 import { accountOgImage, routeMetadata } from "@/lib/metadata";
 import type { Account } from "@/lib/types";
@@ -10,6 +10,7 @@ import AccountActivityFeed from "@/components/AccountActivityFeed";
 import AccountTransactionList from "@/components/AccountTransactionList";
 import AccountOperationList from "@/components/AccountOperationList";
 import BackendUnavailable from "@/components/BackendUnavailable";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -35,53 +36,18 @@ export function generateMetadata({ params }: { params: Promise<{ address: string
   });
 }
 
-const ACCOUNT_QUERY = `
-  query AccountDetail($address: String!) {
-    account(address: $address) {
-      address
-      sequence
-      subentryCount
-      lastModifiedLedger
-      numSponsored
-      numSponsoring
-      balances { assetType assetCode assetIssuer balance limit }
-      flags { authRequired authRevocable authImmutable authClawbackEnabled }
-      transactions(limit: 10) {
-        hash
-        ledger
-        createdAt
-        sourceAccount
-        feeCharged
-        operationCount
-        successful
-      }
-      operations(limit: 10) {
-        id
-        type
-        createdAt
-        transactionHash
-        sourceAccount
-        from
-        to
-        amount
-        asset
-      }
-    }
-  }
-`;
-
 async function getAccount(address: string): Promise<{ account: Account | null; unavailable: boolean }> {
   try {
-    const data = await gqlFetch<{ account: Account | null }>(GRAPHQL_URL, ACCOUNT_QUERY, { address });
+    const data = await gqlFetch(GRAPHQL_URL, ACCOUNT_QUERY, { address });
     return { account: data.account, unavailable: false };
   } catch {
     return { account: null, unavailable: true };
   }
 }
 
-const th = "text-left text-[11px] tracking-[0.06em] uppercase text-[#a6a3b0] px-3 py-2.5 border-b border-[#e5e3ea] bg-[#fafafa]";
-const stat = "bg-[#fafafa] border border-[#e5e3ea] rounded-xl p-4";
-const statLabel = "text-[11px] text-[#a6a3b0] uppercase tracking-[0.05em]";
+const th = "text-left text-[11px] tracking-[0.06em] uppercase text-[var(--color-text-muted)] px-3 py-2.5 border-b border-[var(--color-border-default)] bg-[var(--color-bg-subtle)]";
+const stat = "bg-[var(--color-bg-subtle)] border border-[var(--color-border-default)] rounded-xl p-4";
+const statLabel = "text-[11px] text-[var(--color-text-muted)] uppercase tracking-[0.05em]";
 const statValue = "mono text-sm mt-1";
 
 export default async function AccountPage({
@@ -115,24 +81,24 @@ export default async function AccountPage({
       {result.unavailable ? (
         <BackendUnavailable />
       ) : !account ? (
-        <div className="p-8 rounded-xl border border-[#fecaca] text-center">
-          <p className="text-[#dc2626] font-semibold mb-2">Account Not Found</p>
-          <p className="text-[#a6a3b0] text-sm max-w-md mx-auto">
+        <div className="p-8 rounded-xl border border-[var(--color-error-outline)] text-center">
+          <p className="text-[var(--color-error-text)] font-semibold mb-2">Account Not Found</p>
+          <p className="text-[var(--color-text-muted)] text-sm max-w-md mx-auto">
             The address{" "}
-            <span className="mono text-[#6b6975] break-all">{address}</span>{" "}
+            <span className="mono text-[var(--color-text-secondary)] break-all">{address}</span>{" "}
             does not exist on Stellar Mainnet, or has never been funded.
           </p>
         </div>
       ) : (
         <div>
           <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-            <h1 className="mono font-bold text-[22px] break-all text-[#0e0e12]">
+            <h1 className="mono font-bold text-[22px] break-all text-[var(--color-text-primary)]">
               {account.address}
             </h1>
             <CopyAddressButton address={address} />
             <WatchIndicator address={address} />
           </div>
-          <p className="text-[#a6a3b0] text-[13px] mb-6">
+          <p className="text-[var(--color-text-muted)] text-[13px] mb-6">
             Last modified at ledger{" "}
             {account.lastModifiedLedger.toLocaleString()}
           </p>
@@ -160,17 +126,17 @@ export default async function AccountPage({
             {flagTags.map((f) => (
               <span
                 key={f}
-                className="text-[11px] font-semibold rounded-full bg-[#f3effe] text-[#6d28d9] px-3 py-1"
+                className="text-[11px] font-semibold rounded-full bg-[var(--color-accent-surface)] text-[var(--color-accent-text)] px-3 py-1"
               >
                 {f}
               </span>
             ))}
           </div>
 
-          <h2 className="font-extrabold text-base mb-3 text-[#0e0e12]">
+          <h2 className="font-extrabold text-base mb-3 text-[var(--color-text-primary)]">
             Balances
           </h2>
-          <div className="rounded-xl border border-[#e5e3ea] overflow-x-auto mb-9">
+          <div className="rounded-xl border border-[var(--color-border-default)] overflow-x-auto mb-9">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
@@ -193,18 +159,18 @@ export default async function AccountPage({
                   .map((b, i) => (
                     <tr
                       key={i}
-                      className="border-b border-[#f0eff3] last:border-0"
+                      className="border-b border-[var(--color-bg-overlay)] last:border-0"
                     >
-                      <td className="py-2.5 px-3 font-semibold text-[#0e0e12]">
+                      <td className="py-2.5 px-3 font-semibold text-[var(--color-text-primary)]">
                         {b.assetType === "native" ? "XLM" : b.assetCode}
                       </td>
-                      <td className="py-2.5 px-3 mono text-[#a6a3b0] text-xs max-w-xs truncate">
+                      <td className="py-2.5 px-3 mono text-[var(--color-text-muted)] text-xs max-w-xs truncate">
                         {b.assetType === "native" ? "—" : b.assetIssuer}
                       </td>
-                      <td className="py-2.5 px-3 mono text-[#0e0e12]">
+                      <td className="py-2.5 px-3 mono text-[var(--color-text-primary)]">
                         {formatXLM(b.balance)}
                       </td>
-                      <td className="py-2.5 px-3 mono text-[#a6a3b0] text-xs">
+                      <td className="py-2.5 px-3 mono text-[var(--color-text-muted)] text-xs">
                         {b.limit ? formatXLM(b.limit) : "—"}
                       </td>
                     </tr>
@@ -215,7 +181,7 @@ export default async function AccountPage({
 
           <AccountActivityFeed address={account.address} />
 
-          <h2 className="font-extrabold text-base mb-3 text-[#0e0e12]">
+          <h2 className="font-extrabold text-base mb-3 text-[var(--color-text-primary)]">
             Recent Transactions
           </h2>
           <AccountTransactionList
@@ -223,7 +189,7 @@ export default async function AccountPage({
             initial={account.transactions ?? []}
           />
 
-          <h2 className="font-extrabold text-base mt-9 mb-3 text-[#0e0e12]">
+          <h2 className="font-extrabold text-base mt-9 mb-3 text-[var(--color-text-primary)]">
             Recent Operations
           </h2>
           <AccountOperationList

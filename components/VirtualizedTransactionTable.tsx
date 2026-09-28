@@ -4,11 +4,12 @@ import { useRef, useEffect, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Transaction } from "@/lib/types";
 import TransactionRow from "./TransactionRow";
+import { Table, TableBody, TableHead, TableHeaderCell } from "./Table";
 
 const ROW_HEIGHT = 41;
 const OVERSCAN = 12;
 const th =
-  "text-left text-[11px] tracking-[0.06em] uppercase text-[#a6a3b0] px-3 py-2.5 border-b border-[#e5e3ea] bg-[#fafafa]";
+  "text-left text-[11px] tracking-[0.06em] uppercase text-[var(--color-text-muted)] px-3 py-2.5 border-b border-[var(--color-border-default)] bg-[var(--color-bg-subtle)]";
 
 export default function VirtualizedTransactionTable({
   transactions,
@@ -81,31 +82,31 @@ export default function VirtualizedTransactionTable({
         {transactions.map((tx) => (
           <div
             key={tx.hash}
-            className="rounded-lg border border-[#e5e3ea] p-4 bg-[#fafafa]"
+            className="rounded-lg border border-[var(--color-border-default)] p-4 bg-[var(--color-bg-subtle)]"
           >
             <div className="flex justify-between items-start mb-2">
-              <span className="text-xs font-semibold text-[#a6a3b0]">Hash</span>
-              <span className="mono text-xs text-[#0e0e12] font-semibold truncate ml-2">{tx.hash.slice(0, 12)}…</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">Hash</span>
+              <span className="mono text-xs text-[var(--color-text-primary)] font-semibold truncate ml-2">{tx.hash.slice(0, 12)}…</span>
             </div>
             <div className="flex justify-between items-start mb-2">
-              <span className="text-xs font-semibold text-[#a6a3b0]">Ledger</span>
-              <span className="mono text-xs text-[#0e0e12]">{tx.ledger}</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">Ledger</span>
+              <span className="mono text-xs text-[var(--color-text-primary)]">{tx.ledger}</span>
             </div>
             <div className="flex justify-between items-start mb-2">
-              <span className="text-xs font-semibold text-[#a6a3b0]">Source</span>
-              <span className="mono text-xs text-[#0e0e12] truncate ml-2">{tx.sourceAccount.slice(0, 12)}…</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">Source</span>
+              <span className="mono text-xs text-[var(--color-text-primary)] truncate ml-2">{tx.sourceAccount.slice(0, 12)}…</span>
             </div>
             <div className="flex justify-between items-start mb-2">
-              <span className="text-xs font-semibold text-[#a6a3b0]">Operations</span>
-              <span className="mono text-xs text-[#0e0e12]">{tx.operationCount}</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">Operations</span>
+              <span className="mono text-xs text-[var(--color-text-primary)]">{tx.operationCount}</span>
             </div>
             <div className="flex justify-between items-start mb-2">
-              <span className="text-xs font-semibold text-[#a6a3b0]">Fee</span>
-              <span className="mono text-xs text-[#0e0e12]">{tx.feeCharged}</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">Fee</span>
+              <span className="mono text-xs text-[var(--color-text-primary)]">{tx.feeCharged}</span>
             </div>
             <div className="flex justify-between items-start">
-              <span className="text-xs font-semibold text-[#a6a3b0]">Time</span>
-              <span className="text-xs text-[#0e0e12]">{new Date(tx.createdAt).toLocaleDateString()}</span>
+              <span className="text-xs font-semibold text-[var(--color-text-muted)]">Time</span>
+              <span className="text-xs text-[var(--color-text-primary)]">{new Date(tx.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
         ))}
@@ -115,26 +116,39 @@ export default function VirtualizedTransactionTable({
   }
 
   return (
-    <div
+    <Table
       ref={scrollRef}
+      caption="Transactions"
+      columnCount={COLUMNS}
+      stickyHeader
+      containerClassName="rounded-xl border border-[#e5e3ea] overflow-auto max-h-[70vh]"
       data-testid="transaction-scroll"
       onScroll={
         onScrollTopChange
           ? (event) => onScrollTopChange(event.currentTarget.scrollTop)
           : undefined
       }
-      className="rounded-xl border border-[#e5e3ea] overflow-auto max-h-[70vh]"
+      className="rounded-xl border border-[var(--color-border-default)] overflow-auto max-h-[70vh]"
     >
-      <table className="w-full text-sm border-collapse">
-        <thead className="sticky top-0 z-10">
-          <tr>
-            <th className={`${th} w-6`} />
-            <th className={th}>Hash</th>
-            <th className={th}>Ledger</th>
-            <th className={th}>Source</th>
-            <th className={th}>Ops</th>
-            <th className={th}>Fee</th>
-            <th className={th}>Time</th>
+      <TableHead>
+        {/* A plain row: `TableRow`'s border belongs to body rows, and the
+            header cells already draw their own. */}
+        <tr>
+          <TableHeaderCell className="w-6" />
+          <TableHeaderCell>Hash</TableHeaderCell>
+          <TableHeaderCell>Ledger</TableHeaderCell>
+          <TableHeaderCell>Source</TableHeaderCell>
+          <TableHeaderCell>Ops</TableHeaderCell>
+          <TableHeaderCell>Fee</TableHeaderCell>
+          <TableHeaderCell>Time</TableHeaderCell>
+        </tr>
+      </TableHead>
+      <TableBody>
+        {paddingTop > 0 && (
+          // Layout, not data: kept as a bare cell so the inline height the
+          // virtualizer measures is not padded out by the shared cell styles.
+          <tr aria-hidden="true">
+            <td colSpan={COLUMNS} style={{ height: paddingTop }} />
           </tr>
         </thead>
         <tbody>
@@ -158,7 +172,7 @@ export default function VirtualizedTransactionTable({
       </table>
 
       {transactions.length === 0 && emptyMessage && (
-        <div className="p-8 text-center text-[#a6a3b0] text-sm">
+        <div className="p-8 text-center text-[var(--color-text-muted)] text-sm">
           {emptyMessage}
         </div>
       )}

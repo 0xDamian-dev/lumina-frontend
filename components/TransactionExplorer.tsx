@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import VirtualizedTransactionTable from "./VirtualizedTransactionTable";
 import { gqlFetch, PUBLIC_GRAPHQL_URL } from "@/lib/graphql";
+import { useAbortScope } from "@/lib/useAbortScope";
 import type { Transaction } from "@/lib/types";
 import {
   loadExplorerSnapshot,
@@ -70,6 +71,9 @@ export default function TransactionExplorer({
   // Offset read back from this view's snapshot, handed to the table, which
   // re-applies it once the virtualized rows exist to scroll against.
   const [restoredScrollTop, setRestoredScrollTop] = useState(0);
+  const loadedHashes = useRef(new Set<string>());
+  const loadingRef = useRef(false);
+  const requestControllerRef = useRef<AbortController | null>(null);
 
   // The URL is the source of truth for filters, so a refresh, a back button
   // and a pasted link all land on the same view.
@@ -81,6 +85,9 @@ export default function TransactionExplorer({
 
   const setFilters = useCallback(
     (next: Filters) => {
+      // A changed filter makes an auto-page chase obsolete. Aborting it lets
+      // the next filter start its own request as soon as this one settles.
+      requestControllerRef.current?.abort();
       const query = filtersToQueryString(next);
       router.replace(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
@@ -96,8 +103,10 @@ export default function TransactionExplorer({
     setPresets(loadPresets());
   }, []);
 
-  const loadedHashes = useRef(new Set<string>());
-  const loadingRef = useRef(false);
+  useEffect(
+    () => () => requestControllerRef.current?.abort(),
+    [],
+  );
 
   // Key this view's snapshot is stored under. Kept in step with the filters on
   // screen, so narrowing the list re-keys the saved view rather than
@@ -133,17 +142,30 @@ export default function TransactionExplorer({
     [scheduleSnapshotSave],
   );
 
+  // The list's fetches live as long as this component does: navigating away
+  // cancels a page that is still on its way.
+  const scope = useAbortScope();
+
   const loadMore = useCallback(() => {
     if (loadingRef.current) return;
     loadingRef.current = true;
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     setLoading(true);
     setError(null);
 
-    return gqlFetch(PUBLIC_GRAPHQL_URL, PAGE_QUERY, {
-      limit: PAGE_SIZE,
-      cursor,
-    })
+    // Supersedes any page still in flight: leaving the page mid-request must
+    // not let that request land afterwards and write into state.
+    const req = scope.next();
+
+    return gqlFetch(
+      PUBLIC_GRAPHQL_URL,
+      PAGE_QUERY,
+      { limit: PAGE_SIZE, cursor },
+      { signal: req.signal },
+    )
       .then((data) => {
+        if (!req.isCurrent()) return;
         const page = data.transactions;
 
         setTxs((current) => {
@@ -161,16 +183,19 @@ export default function TransactionExplorer({
         );
       })
       .catch(() => {
+        if (!req.isCurrent()) return;
         setError("Could not load more transactions.");
         // Stop the sentinel from immediately retrying in a tight loop; the
         // explicit retry button puts the user back in control.
         setHasNextPage(false);
       })
       .finally(() => {
+        // The spinner resolves however the request ended — a cancelled one
+        // settles immediately — but only this request's data is ever applied.
         loadingRef.current = false;
         setLoading(false);
       });
-  }, [cursor]);
+  }, [scope, cursor]);
 
   // ── Return to where the reader was ──────────────────────────────────────
   //
@@ -305,14 +330,14 @@ export default function TransactionExplorer({
         onDeletePreset={handleDeletePreset}
       />
 
-      <div className="flex items-center justify-between mb-3 text-[13px] text-[#6b6975]">
+      <div className="flex items-center justify-between mb-3 text-[13px] text-[var(--color-text-secondary)]">
         <span data-testid="result-count">
           {filtering
             ? `${filtered.length} of ${txs.length} loaded`
             : `${txs.length} loaded`}
         </span>
         {loading && (
-          <span className="text-[#a6a3b0] animate-pulse">Loading&hellip;</span>
+          <span className="text-[var(--color-text-muted)] animate-pulse">Loading&hellip;</span>
         )}
       </div>
 
@@ -336,14 +361,14 @@ export default function TransactionExplorer({
           <BackendUnavailable onRetry={() => { setHasNextPage(true); void loadMore(); }} />
         ) : error ? (
           <>
-            <span className="text-[13px] text-[#dc2626]">{error}</span>
+            <span className="text-[13px] text-[var(--color-error-text)]">{error}</span>
             <button
               type="button"
               onClick={() => {
                 setHasNextPage(true);
                 void loadMore();
               }}
-              className="bg-[#f6f5f8] border border-[#e5e3ea] hover:border-[#c4b5fd] font-semibold text-[13px] px-4 py-2 rounded-[9px] transition-colors"
+              className="bg-[var(--color-bg-raised)] border border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] font-semibold text-[13px] px-4 py-2 rounded-[9px] transition-colors"
             >
               Retry
             </button>
@@ -353,13 +378,13 @@ export default function TransactionExplorer({
             type="button"
             onClick={() => void loadMore()}
             disabled={loading}
-            className="bg-[#f6f5f8] border border-[#e5e3ea] enabled:hover:border-[#c4b5fd] disabled:opacity-50 font-semibold text-[13px] px-5 py-2 rounded-[9px] transition-colors"
+            className="bg-[var(--color-bg-raised)] border border-[var(--color-border-default)] enabled:hover:border-[var(--color-border-strong)] disabled:opacity-50 font-semibold text-[13px] px-5 py-2 rounded-[9px] transition-colors"
           >
             {loading ? "Loading…" : "Load more"}
           </button>
         ) : (
           txs.length > 0 && (
-            <span className="text-[13px] text-[#c3c1cb]">End of results</span>
+            <span className="text-[13px] text-[var(--color-text-faint)]">End of results</span>
           )
         )}
       </div>

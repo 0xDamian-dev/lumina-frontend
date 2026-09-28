@@ -115,7 +115,10 @@ testable without a browser extension.
 `lib/wallet.ts` wraps `@creit.tech/stellar-wallets-kit` behind a small session
 API: connect, disconnect, `getConnectedWallet`, and `readPersistedSession`,
 which seeds the UI from `localStorage` so a reload does not flash a disconnected
-state before the async check resolves.
+state before the async check resolves. The kit itself is imported on the first
+wallet call rather than at module load, so a visitor who never connects never
+downloads it: `readPersistedSession` reads `localStorage` synchronously and the
+connect button shows a loading state while the kit chunks arrive.
 
 `lib/sorobanTx.ts` is the write path, modelled as an explicit phase machine:
 
@@ -146,6 +149,12 @@ its length (`MAX_FEED_LENGTH`) because a subscription-backed list would
 otherwise grow without bound on a tab left open overnight; it is a "what is
 happening now" panel, not scrollback. React Compiler memoization is enabled per
 component via an annotation, and the boundary is measured rather than assumed.
+
+First-load JavaScript is budgeted per route in `bundle-budget.json` and checked
+on every pull request, so a dependency that grows a page fails CI instead of
+arriving as a slow page on a slow connection. The commands and the meaning of
+the numbers are in the Bundle report section of
+[CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Where new code goes
 

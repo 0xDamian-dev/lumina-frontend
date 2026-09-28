@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Pause, Play } from "lucide-react";
 import { gqlFetch, PUBLIC_GRAPHQL_URL } from "@/lib/graphql";
+import { useAbortScope } from "@/lib/useAbortScope";
 import { useSubscription } from "@/lib/useSubscription";
 import type { Transaction } from "@/lib/types";
 import { truncateAddress } from "@/lib/formatters";
@@ -99,14 +100,22 @@ export default function LiveFeed() {
   const live =
     state === "connected" || state === "connecting" || state === "reconnecting";
 
+  // Seed, reconnect and poll all ask the same question, so they share one
+  // scope: whichever asked last is the answer that counts, and a poll that is
+  // still in flight when the next one starts is cancelled rather than allowed
+  // to arrive afterwards and overwrite the newer one.
+  const scope = useAbortScope();
+
   const fetchRecent = useCallback(async () => {
+    const req = scope.next();
     try {
       const data = await gqlFetch(
         PUBLIC_GRAPHQL_URL,
         RECENT_TRANSACTIONS_QUERY,
         { limit: SEED_LIMIT },
+        { signal: req.signal },
       );
-      if (data.transactions.items.length > 0) {
+      if (req.isCurrent() && data.transactions.items.length > 0) {
         setTxs(data.transactions.items.slice(0, MAX_FEED_LENGTH));
         setLastUpdated(new Date());
       }
@@ -114,7 +123,7 @@ export default function LiveFeed() {
       // Keep showing the last successful fetch rather than blanking the panel.
     }
     setLoading(false);
-  }, []);
+  }, [scope]);
 
   // Seed once on mount. Without this the feed is empty until the network
   // happens to produce a transaction, which reads as broken.
@@ -150,24 +159,24 @@ export default function LiveFeed() {
   const virtualRows = virtualizer.getVirtualItems();
 
   return (
-    <div className="rounded-xl border border-[#e5e3ea] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e3ea] bg-[#fafafa]">
+    <div className="rounded-xl border border-[var(--color-border-default)] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-default)] bg-[var(--color-bg-subtle)]">
         <ConnectionIndicator
           state={state}
           failureReason={failureReason}
           onRetry={retry}
         />
         {lastUpdated && (
-          <span className="text-[11px] text-[#a6a3b0]">Updated <TimeAgo isoString={lastUpdated.toISOString()} /></span>
+          <span className="text-[11px] text-[var(--color-text-muted)]">Updated <TimeAgo isoString={lastUpdated.toISOString()} /></span>
         )}
       </div>
 
       {loading ? (
-        <div className="p-6 text-center text-[#a6a3b0] text-sm animate-pulse">
+        <div className="p-6 text-center text-[var(--color-text-muted)] text-sm animate-pulse">
           Fetching live data...
         </div>
       ) : txs.length === 0 ? (
-        <div className="p-6 text-center text-[#a6a3b0] text-sm">
+        <div className="p-6 text-center text-[var(--color-text-muted)] text-sm">
           No transactions found.
         </div>
       ) : (
@@ -175,22 +184,22 @@ export default function LiveFeed() {
           {txs.map((tx) => (
             <div
               key={tx.hash}
-              className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f0eff3] last:border-0"
+              className="flex items-center gap-3 px-4 py-2.5 border-b border-[var(--color-bg-overlay)] last:border-0"
             >
               <span
-                className={`w-[7px] h-[7px] rounded-full shrink-0 ${tx.successful ? "bg-[#16a34a]" : "bg-[#dc2626]"}`}
+                className={`w-[7px] h-[7px] rounded-full shrink-0 ${tx.successful ? "bg-[var(--color-success-text)]" : "bg-[var(--color-error-text)]"}`}
               />
               <a
                 href={`https://stellar.expert/explorer/public/tx/${tx.hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mono text-xs text-[#7c3aed] hover:text-[#6d28d9] hover:underline transition-colors"
+                className="mono text-xs text-[var(--color-accent-text)] hover:text-[var(--color-accent-text-hover)] hover:underline transition-colors"
               >
                 {truncateAddress(tx.hash, 5)}
               </a>
-              <span className="text-xs text-[#a6a3b0] mono">{truncateAddress(tx.sourceAccount)}</span>
-              <span className="ml-auto text-[11px] text-[#c3c1cb]"><TimeAgo isoString={tx.createdAt} /></span>
-              <span className="text-[11px] bg-[#f6f5f8] text-[#6b6975] px-1.5 py-0.5 rounded">{tx.operationCount} ops</span>
+              <span className="text-xs text-[var(--color-text-muted)] mono">{truncateAddress(tx.sourceAccount)}</span>
+              <span className="ml-auto text-[11px] text-[var(--color-text-faint)]"><TimeAgo isoString={tx.createdAt} /></span>
+              <span className="text-[11px] bg-[var(--color-bg-raised)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded">{tx.operationCount} ops</span>
             </div>
           ))}
         </div>
