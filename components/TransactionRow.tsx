@@ -8,35 +8,35 @@ import { TableCell, TableRow } from "./Table";
 export default function TransactionRow({ tx }: { tx: Transaction }) {
   const fee = (parseInt(tx.feeCharged) / 1e7).toFixed(7);
   return (
-    <TableRow>
-      <TableCell>
-        <span className={`w-2 h-2 rounded-full inline-block ${tx.successful ? "bg-[#16a34a]" : "bg-[#dc2626]"}`} />
-      </TableCell>
-      <TableCell>
+    <tr className="border-b border-[var(--color-bg-overlay)] last:border-0">
+      <td className="py-2.5 px-3">
+        <span className={`w-2 h-2 rounded-full inline-block ${tx.successful ? "bg-[var(--color-success-text)]" : "bg-[var(--color-error-text)]"}`} />
+      </td>
+      <td className="py-2.5 px-3">
         <a
           href={`https://stellar.expert/explorer/public/tx/${tx.hash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mono text-xs text-[#7c3aed] hover:text-[#6d28d9] hover:underline transition-colors"
+          className="mono text-xs text-[var(--color-accent-text)] hover:text-[var(--color-accent-text-hover)] hover:underline transition-colors"
           title={tx.hash}
         >
           {truncateAddress(tx.hash, 6)}
         </a>
-      </TableCell>
-      <TableCell className="mono text-xs text-[#6b6975]">{tx.ledger.toLocaleString()}</TableCell>
-      <TableCell className="mono text-xs text-[#6b6975]">
+      </td>
+      <td className="py-2.5 px-3 mono text-xs text-[var(--color-text-secondary)]">{tx.ledger.toLocaleString()}</td>
+      <td className="py-2.5 px-3 mono text-xs text-[var(--color-text-secondary)]">
         <span className="inline-flex items-center gap-1">
-          <Link href={`/accounts/${tx.sourceAccount}`} className="hover:text-[#7c3aed] hover:underline transition-colors">
+          <Link href={`/accounts/${tx.sourceAccount}`} className="hover:text-[var(--color-accent-text)] hover:underline transition-colors">
             {truncateAddress(tx.sourceAccount)}
           </Link>
           <WatchIndicator address={tx.sourceAccount} />
         </span>
-      </TableCell>
-      <TableCell>
-        <span className="text-[11px] bg-[#f6f5f8] text-[#6b6975] px-1.5 py-0.5 rounded">{tx.operationCount}</span>
-      </TableCell>
-      <TableCell className="mono text-xs text-[#a6a3b0]">{formatXLM(fee)} XLM</TableCell>
-      <TableCell className="text-xs text-[#c3c1cb]"><TimeAgo isoString={tx.createdAt} /></TableCell>
-    </TableRow>
+      </td>
+      <td className="py-2.5 px-3">
+        <span className="text-[11px] bg-[var(--color-bg-raised)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded">{tx.operationCount}</span>
+      </td>
+      <td className="py-2.5 px-3 mono text-xs text-[var(--color-text-muted)]">{formatXLM(fee)} XLM</td>
+      <td className="py-2.5 px-3 text-xs text-[var(--color-text-faint)]"><TimeAgo isoString={tx.createdAt} /></td>
+    </tr>
   );
 }

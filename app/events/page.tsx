@@ -73,16 +73,14 @@ export default async function EventsPage({
         />
         <button
           type="submit"
-          className="bg-[var(--color-accent-9)] hover:bg-[var(--color-accent-10)] text-white font-bold text-sm px-6 rounded-[9px] transition-colors"
+          className="bg-[var(--color-accent-fill)] hover:bg-[var(--color-accent-fill-hover)] text-white font-bold text-sm px-6 rounded-[9px] transition-colors"
         >
           Filter
         </button>
       </form>
 
       <div className="rounded-xl border border-[var(--color-border-default)] overflow-x-auto">
-        {result.unavailable ? (
-          <BackendUnavailable />
-        ) : result.events.length === 0 ? (
+        {result.unavailable ? <BackendUnavailable /> : result.events.length === 0 ? (
           <div className="p-8 text-center text-[var(--color-text-muted)] text-sm">
             No events indexed for this contract yet. Event indexing is opt-in on
             the indexer (<span className="mono">INDEXED_CONTRACT_IDS</span>/
@@ -101,17 +99,12 @@ export default async function EventsPage({
               </tr>
             </thead>
             <tbody>
-              {result.events.map((ev) => (
-                <tr
-                  key={ev.id}
-                  className="border-b border-[var(--color-bg-overlay)] last:border-0"
-                >
-                  <td className="py-2.5 px-3 mono text-xs text-[var(--color-accent-11)]">
-                    {truncateAddress(ev.contractId, 6)}
-                  </td>
+              {result.events.map(ev => (
+                <tr key={ev.id} className="border-b border-[var(--color-bg-overlay)] last:border-0">
+                  <td className="py-2.5 px-3 mono text-xs text-[var(--color-accent-text)]">{truncateAddress(ev.contractId, 6)}</td>
                   <td className="py-2.5 px-3">
                     {ev.topics[0] && (
-                      <span className="text-[11px] font-semibold bg-[var(--color-accent-3)] text-[var(--color-accent-11)] rounded-md px-2 py-[3px]">
+                      <span className="text-[11px] font-semibold bg-[var(--color-accent-surface)] text-[var(--color-accent-text)] rounded-md px-2 py-[3px]">
                         {ev.topics[0]}
                         {ev.topics.length > 1
                           ? ` +${ev.topics.length - 1}`
@@ -119,15 +112,9 @@ export default async function EventsPage({
                       </span>
                     )}
                   </td>
-                  <td className="py-2.5 px-3 max-w-[360px] align-top">
-                    {ev.value == null ? "—" : <SorobanValue value={ev.value} />}
-                  </td>
-                  <td className="py-2.5 px-3 mono text-xs text-[var(--color-text-secondary)]">
-                    {ev.ledger.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 px-3 text-xs text-[var(--color-text-muted)]">
-                    <TimeAgo isoString={ev.createdAt} />
-                  </td>
+                  <td className="py-2.5 px-3 mono text-xs text-[var(--color-text-secondary)] max-w-[280px] truncate">{ev.value ?? "—"}</td>
+                  <td className="py-2.5 px-3 mono text-xs text-[var(--color-text-secondary)]">{ev.ledger.toLocaleString()}</td>
+                  <td className="py-2.5 px-3 text-xs text-[var(--color-text-faint)]"><TimeAgo isoString={ev.createdAt} /></td>
                 </tr>
               ))}
             </tbody>

@@ -9,7 +9,7 @@ import {
 import type { FilterPreset } from "@/lib/filterPresets";
 
 const field =
-  "min-h-[38px] px-3 py-2 text-[13px] bg-white border border-[var(--color-border-default)] rounded-[9px] focus:outline-none focus:border-[var(--color-border-strong)]";
+  "min-h-[38px] px-3 py-2 text-[13px] bg-[var(--color-bg-base)] border border-[var(--color-border-default)] rounded-[9px] focus:outline-none focus:border-[var(--color-border-strong)]";
 const label = "block text-[11px] tracking-[0.06em] uppercase text-[var(--color-text-muted)] mb-1.5";
 
 export interface TransactionFiltersProps {
@@ -86,7 +86,7 @@ export default function TransactionFilters({
             onClick={() => set("status", status)}
             aria-pressed={filters.status === status}
             className={`border-none px-[18px] py-[9px] text-sm font-semibold capitalize transition-colors ${
-              filters.status === status ? "bg-[var(--color-accent-9)] text-white" : "bg-white text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-subtle)]"
+              filters.status === status ? "bg-[var(--color-accent-fill)] text-white" : "bg-[var(--color-bg-base)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-subtle)]"
             }`}
           >
             {status}
@@ -174,7 +174,7 @@ export default function TransactionFilters({
           <button
             type="button"
             onClick={() => onChange(EMPTY_FILTERS)}
-            className="text-[13px] font-semibold text-[var(--color-accent-10)] hover:text-[var(--color-accent-11)] px-2 py-2"
+            className="text-[13px] font-semibold text-[var(--color-accent-text)] hover:text-[var(--color-accent-text-hover)] px-2 py-2"
           >
             Clear {activeCount} filter{activeCount === 1 ? "" : "s"}
           </button>
@@ -186,7 +186,7 @@ export default function TransactionFilters({
           {presets.map(preset => (
             <span
               key={preset.name}
-              className="inline-flex items-center gap-1 text-[12px] font-semibold rounded-full bg-[var(--color-accent-3)] text-[var(--color-accent-11)] pl-3 pr-1.5 py-1"
+              className="inline-flex items-center gap-1 text-[12px] font-semibold rounded-full bg-[var(--color-accent-surface)] text-[var(--color-accent-text)] pl-3 pr-1.5 py-1"
             >
               <button type="button" onClick={() => onApplyPreset(preset)} className="hover:underline">
                 {preset.name}
@@ -195,7 +195,7 @@ export default function TransactionFilters({
                 type="button"
                 aria-label={`Delete preset ${preset.name}`}
                 onClick={() => onDeletePreset(preset.name)}
-                className="text-[var(--color-border-strong)] hover:text-[var(--color-accent-11)] px-1 leading-none"
+                className="text-[var(--color-accent-text)] hover:text-[var(--color-accent-text-hover)] px-1 leading-none"
               >
                 &times;
               </button>

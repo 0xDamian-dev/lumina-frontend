@@ -19,7 +19,8 @@ const PAGE_SIZE = 25;
 /** Matches the seed the server component renders. */
 const SEED_LIMIT = 10;
 
-const COLUMNS = 4;
+const th =
+  "text-left text-[11px] tracking-[0.06em] uppercase text-[var(--color-text-muted)] px-3 py-2.5 border-b border-[var(--color-border-default)] bg-[var(--color-bg-subtle)]";
 
 export default function AccountOperationList({
   address,
@@ -67,12 +68,12 @@ export default function AccountOperationList({
   }, [address, cursor, loading]);
 
   if (rows.length === 0) {
-    return <TableEmptyState>No operations yet.</TableEmptyState>;
+    return <p className="text-sm text-[var(--color-text-muted)]">No operations yet.</p>;
   }
 
   return (
     <>
-      <div className="flex items-center justify-between mb-3 text-[13px] text-[#6b6975]">
+      <div className="flex items-center justify-between mb-3 text-[13px] text-[var(--color-text-secondary)]">
         <span data-testid="operation-count">
           {hasNextPage
             ? `Showing ${rows.length} of your recent operations`
@@ -80,60 +81,61 @@ export default function AccountOperationList({
         </span>
       </div>
 
-      <Table caption="Account operations" columnCount={COLUMNS} busy={loading}>
-        <TableHead>
-          {/* A plain row: `TableRow`'s border belongs to body rows, and the
-              header cells already draw their own. */}
-          <tr>
-            <TableHeaderCell>Type</TableHeaderCell>
-            <TableHeaderCell>Transaction</TableHeaderCell>
-            <TableHeaderCell>Detail</TableHeaderCell>
-            <TableHeaderCell>Time</TableHeaderCell>
-          </tr>
-        </TableHead>
-        <TableBody>
-          {rows.map((op) => (
-            <TableRow key={op.id}>
-              <TableCell>
-                <span className="text-[10px] font-bold rounded-full bg-[#f3effe] text-[#6d28d9] px-2 py-0.5">
-                  {formatOperationType(op.type.toLowerCase())}
-                </span>
-              </TableCell>
-              <TableCell>
-                <a
-                  href={`https://stellar.expert/explorer/public/tx/${op.transactionHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mono text-xs text-[#7c3aed] hover:text-[#6d28d9] hover:underline transition-colors"
-                >
-                  {truncateAddress(op.transactionHash, 6)}
-                </a>
-              </TableCell>
-              <TableCell className="text-xs text-[#0e0e12]">
-                {op.amount ? (
-                  <span className="mono">
-                    {op.amount} {op.asset ?? "XLM"}
+      <div className="rounded-xl border border-[var(--color-border-default)] overflow-hidden">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr>
+              <th className={th}>Type</th>
+              <th className={th}>Transaction</th>
+              <th className={th}>Detail</th>
+              <th className={th}>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((op) => (
+              <tr
+                key={op.id}
+                className="border-b border-[var(--color-bg-overlay)] last:border-0"
+              >
+                <td className="py-2.5 px-3">
+                  <span className="text-[10px] font-bold rounded-full bg-[var(--color-accent-surface)] text-[var(--color-accent-text)] px-2 py-0.5">
+                    {formatOperationType(op.type.toLowerCase())}
                   </span>
-                ) : op.from && op.to ? (
-                  <span className="mono text-[#6b6975]">
-                    {truncateAddress(op.from, 4)} →{" "}
-                    {truncateAddress(op.to, 4)}
-                  </span>
-                ) : op.from || op.to ? (
-                  <span className="mono text-[#6b6975]">
-                    {truncateAddress(op.from ?? op.to ?? "", 4)}
-                  </span>
-                ) : (
-                  <span className="text-[#a6a3b0]">—</span>
-                )}
-              </TableCell>
-              <TableCell className="text-xs text-[#c3c1cb]">
-                <TimeAgo isoString={op.createdAt} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                </td>
+                <td className="py-2.5 px-3">
+                  <a
+                    href={`https://stellar.expert/explorer/public/tx/${op.transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mono text-xs text-[var(--color-accent-text)] hover:text-[var(--color-accent-text-hover)] hover:underline transition-colors"
+                  >
+                    {truncateAddress(op.transactionHash, 6)}
+                  </a>
+                </td>
+                <td className="py-2.5 px-3 text-xs text-[var(--color-text-primary)]">
+                  {op.amount ? (
+                    <span className="mono">
+                      {op.amount} {op.asset ?? "XLM"}
+                    </span>
+                  ) : op.from && op.to ? (
+                    <span className="mono text-[var(--color-text-secondary)]">
+                      {truncateAddress(op.from, 4)} →{" "}
+                      {truncateAddress(op.to, 4)}
+                    </span>
+                  ) : op.from || op.to ? (
+                    <span className="mono text-[var(--color-text-secondary)]">
+                      {truncateAddress(op.from ?? op.to ?? "", 4)}
+                    </span>
+                  ) : (
+                    <span className="text-[var(--color-text-muted)]">—</span>
+                  )}
+                </td>
+                <td className="py-2.5 px-3 text-xs text-[var(--color-text-faint)]"><TimeAgo isoString={op.createdAt} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <LoadMoreFooter
         loading={loading}

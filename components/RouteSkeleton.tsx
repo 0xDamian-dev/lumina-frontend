@@ -11,7 +11,7 @@
  * reader should be told the page is loading, not read a list of empty
  * rectangles.
  */
-const BAR = "bg-[var(--color-bg-overlay)] rounded animate-pulse";
+const BAR = 'bg-[var(--color-skeleton-bg)] rounded animate-pulse';
 
 export default function RouteSkeleton({
   label,
@@ -60,8 +60,7 @@ export default function RouteSkeleton({
       <div className="max-w-[1160px] mx-auto rounded-xl border border-[var(--color-border-default)] overflow-hidden" aria-hidden="true">
         <div className="h-10 border-b border-[var(--color-border-default)] bg-[var(--color-bg-raised)]" />
         {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className="h-[45px] px-4 border-b border-[var(--color-border-default)] last:border-0 flex items-center gap-4">
-            <div className={`h-3 w-1/4 ${BAR}`} />
+          <div key={i} className="border border-[var(--color-border-default)] rounded-xl p-4 flex flex-col gap-2">
             <div className={`h-3 w-1/3 ${BAR}`} />
             <div className={`h-3 w-1/5 ${BAR}`} />
           </div>

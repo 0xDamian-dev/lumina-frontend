@@ -23,7 +23,8 @@ export const SEED_LIMIT = 10;
 /** Each load more widens the window: 10 → 25 → 60 → 150 → 375. */
 const LIMIT_STEPS = [10, 25, 60, 150, 375];
 
-const COLUMNS = 4;
+const th =
+  "text-left text-[11px] tracking-[0.06em] uppercase text-[var(--color-text-muted)] px-3 py-2.5 border-b border-[var(--color-border-default)] bg-[var(--color-bg-subtle)]";
 
 export default function AccountTransactionList({
   address,
@@ -70,12 +71,12 @@ export default function AccountTransactionList({
   }, [address, step, loading]);
 
   if (rows.length === 0) {
-    return <TableEmptyState>No transactions yet.</TableEmptyState>;
+    return <p className="text-sm text-[var(--color-text-muted)]">No transactions yet.</p>;
   }
 
   return (
     <>
-      <div className="flex items-center justify-between mb-3 text-[13px] text-[#6b6975]">
+      <div className="flex items-center justify-between mb-3 text-[13px] text-[var(--color-text-secondary)]">
         <span data-testid="transaction-count">
           {hasMore
             ? `Showing the ${rows.length} most recent transactions`
@@ -83,45 +84,42 @@ export default function AccountTransactionList({
         </span>
       </div>
 
-      <Table
-        caption="Account transactions"
-        columnCount={COLUMNS}
-        busy={loading}
-      >
-        <TableHead>
-          {/* A plain row: `TableRow`'s border belongs to body rows, and the
-              header cells already draw their own. */}
-          <tr>
-            <TableHeaderCell>Hash</TableHeaderCell>
-            <TableHeaderCell>Ledger</TableHeaderCell>
-            <TableHeaderCell>Ops</TableHeaderCell>
-            <TableHeaderCell>Time</TableHeaderCell>
-          </tr>
-        </TableHead>
-        <TableBody>
-          {rows.map((tx) => (
-            <TableRow key={tx.hash}>
-              <TableCell>
-                <a
-                  href={`https://stellar.expert/explorer/public/tx/${tx.hash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mono text-xs text-[#7c3aed] hover:text-[#6d28d9] hover:underline transition-colors"
-                >
-                  {truncateAddress(tx.hash, 6)}
-                </a>
-              </TableCell>
-              <TableCell className="mono text-xs">
-                {tx.ledger.toLocaleString()}
-              </TableCell>
-              <TableCell className="text-xs">{tx.operationCount}</TableCell>
-              <TableCell className="text-xs text-[#c3c1cb]">
-                <TimeAgo isoString={tx.createdAt} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="rounded-xl border border-[var(--color-border-default)] overflow-hidden">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr>
+              <th className={th}>Hash</th>
+              <th className={th}>Ledger</th>
+              <th className={th}>Ops</th>
+              <th className={th}>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((tx) => (
+              <tr
+                key={tx.hash}
+                className="border-b border-[var(--color-bg-overlay)] last:border-0"
+              >
+                <td className="py-2.5 px-3">
+                  <a
+                    href={`https://stellar.expert/explorer/public/tx/${tx.hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mono text-xs text-[var(--color-accent-text)] hover:text-[var(--color-accent-text-hover)] hover:underline transition-colors"
+                  >
+                    {truncateAddress(tx.hash, 6)}
+                  </a>
+                </td>
+                <td className="py-2.5 px-3 mono text-xs">
+                  {tx.ledger.toLocaleString()}
+                </td>
+                <td className="py-2.5 px-3 text-xs">{tx.operationCount}</td>
+                <td className="py-2.5 px-3 text-xs text-[var(--color-text-faint)]"><TimeAgo isoString={tx.createdAt} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <LoadMoreFooter
         loading={loading}
