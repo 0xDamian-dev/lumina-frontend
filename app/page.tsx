@@ -8,7 +8,6 @@ import StatCard from "@/components/StatCard";
 import SearchBar from "@/components/SearchBar";
 import LiveFeed from "@/components/LiveFeed";
 import BackendUnavailable from "@/components/BackendUnavailable";
-import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   // `absolute` because this is the route the title template's own default

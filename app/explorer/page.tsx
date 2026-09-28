@@ -4,7 +4,6 @@ import { routeMetadata } from "@/lib/metadata";
 import { EXPLORER } from "@/lib/routes";
 import SearchBar from "@/components/SearchBar";
 import TransactionExplorer from "@/components/TransactionExplorer";
-import TransactionExplorerSkeleton from "@/components/TransactionExplorerSkeleton";
 
 export const dynamic = "force-dynamic";
 

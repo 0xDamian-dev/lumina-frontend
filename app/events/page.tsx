@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ContractEventsDocument as EVENTS_QUERY } from "@/lib/generated/graphql";
 import { gqlFetch, GRAPHQL_URL } from "@/lib/graphql";
+import { ContractEventsDocument as EVENTS_QUERY } from "@/lib/generated/graphql";
 import { routeMetadata } from "@/lib/metadata";
 import { EVENTS } from "@/lib/routes";
 import type { ContractEvent } from "@/lib/types";
@@ -32,8 +33,8 @@ async function getEvents(contractId: string, cursor?: string): Promise<{
   unavailable: boolean;
 }> {
   try {
-    const data = await gqlFetch(GRAPHQL_URL, EVENTS_QUERY, { contractId, limit: 20, cursor });
-    return { events: data.events.items, pageInfo: data.events.pageInfo, unavailable: false };
+    const data = await gqlFetch(GRAPHQL_URL, EVENTS_QUERY, { contractId, limit: 20 });
+    return { events: data.events.items, unavailable: false };
   } catch {
     return { events: [], pageInfo: null, unavailable: true };
   }

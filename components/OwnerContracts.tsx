@@ -51,11 +51,10 @@ import { LifetimeSlashedBadge, StakeBadge, VerifiedBadge } from './RegistryBadge
 import BackendUnavailable from './BackendUnavailable';
 
 async function fetchEvents(contractId: string, limit: number): Promise<ContractEvent[]> {
-  const data = await gqlFetch(
-    PUBLIC_GRAPHQL_URL,
-    EVENTS_QUERY,
-    { contractId, limit }
-  );
+  const data = await gqlFetch(PUBLIC_GRAPHQL_URL, EVENTS_QUERY, {
+    contractId,
+    limit,
+  });
   return data.events.items;
 }
 
@@ -226,9 +225,6 @@ export default function OwnerContracts({
     setState('error');
   }, []);
 
-  // History is per row, and the panels are long enough that leaving several
-  // open at once turns the dashboard into a wall — so opening one closes the
-  // last.
   useEffect(() => {
     // The effect body only starts the fetch; every setState happens in a
     // settled-promise handler. `cancelled` stops a slow read writing into a

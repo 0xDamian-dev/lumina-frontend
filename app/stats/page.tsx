@@ -1,23 +1,18 @@
 import { gqlFetch, GRAPHQL_URL } from "@/lib/graphql";
+import { StatsDocument } from "@/lib/generated/graphql";
 import { routeMetadata } from "@/lib/metadata";
 import { STATS } from "@/lib/routes";
-import type { Ledger, Operation } from "@/lib/types";
+import type { Operation } from "@/lib/types";
 import { getActiveContracts } from "@/lib/registry";
 import { formatOperationType } from "@/lib/formatters";
 import StatCard from "@/components/StatCard";
 import BackendUnavailable from "@/components/BackendUnavailable";
-import type { Metadata } from "next";
-import { StatsDocument as STATS_QUERY } from "@/lib/generated/graphql";
 
 export const metadata: Metadata = routeMetadata(STATS);
 
-async function getStats(): Promise<{
-  latestLedger: Pick<Ledger, "sequence" | "transactionCount"> | null;
-  operations: { items: Pick<Operation, "type">[] } | null;
-  unavailable: boolean;
-}> {
+async function getStats() {
   try {
-    const data = await gqlFetch(GRAPHQL_URL, STATS_QUERY, { opLimit: 200 });
+    const data = await gqlFetch(GRAPHQL_URL, StatsDocument, { opLimit: 200 });
     return { ...data, unavailable: false };
   } catch {
     return { latestLedger: null, operations: { items: [] }, unavailable: true };
@@ -62,7 +57,7 @@ export default async function StatsPage() {
     <div className="max-w-[1160px] mx-auto px-4 sm:px-7 py-12">
       <h1 className="font-extrabold text-3xl mb-2 text-[#0e0e12]">Network Stats</h1>
       <p className="text-[#6b6975] mb-8">Indexer health and Stellar network throughput at a glance.</p>
-      {(unavailable || contracts.unavailable) && <BackendUnavailable />}
+      {unavailable && <BackendUnavailable />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-9">
         <StatCard title="Latest Ledger" value={latestLedger ? latestLedger.sequence.toLocaleString() : "—"} subtitle="Stellar Mainnet" />
