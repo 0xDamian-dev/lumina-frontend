@@ -62,6 +62,13 @@ export const EVENTS: RouteInfo = {
     "Soroban contract events indexed by Lumina, filterable by contract id.",
 };
 
+export const ASSETS: RouteInfo = {
+  path: "/assets",
+  label: "Assets",
+  description:
+    "Every Stellar asset Lumina indexes — supply and holder counts, ordered by holders or by transfer volume.",
+};
+
 export const GRAPHQL: RouteInfo = {
   path: "/graphql",
   label: "GraphQL",
@@ -107,6 +114,7 @@ export const STABLE_ROUTES: readonly RouteInfo[] = [
   TRANSACTIONS,
   SEARCH,
   EVENTS,
+  ASSETS,
   GRAPHQL,
   REGISTRY,
   STATS,
