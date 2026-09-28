@@ -14,15 +14,6 @@ import type { Operation } from '@/lib/types';
 import { formatOperationType, truncateAddress } from '@/lib/formatters';
 import TimeAgo from './TimeAgo';
 import LoadMoreFooter from './LoadMoreFooter';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableEmptyState,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from './Table';
 
 const PAGE_SIZE = 25;
 /** Matches the seed the server component renders. */

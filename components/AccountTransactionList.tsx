@@ -17,15 +17,6 @@ import type { Transaction } from '@/lib/types';
 import { truncateAddress } from '@/lib/formatters';
 import TimeAgo from './TimeAgo';
 import LoadMoreFooter from './LoadMoreFooter';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableEmptyState,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from './Table';
 
 /** The seed the server component renders; the first client fetch widens past it. */
 export const SEED_LIMIT = 10;
