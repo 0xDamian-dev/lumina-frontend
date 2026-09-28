@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import VirtualizedTransactionTable from "./VirtualizedTransactionTable";
 import { gqlFetch, PUBLIC_GRAPHQL_URL } from "@/lib/graphql";
+import { useAbortScope } from "@/lib/useAbortScope";
 import type { Transaction } from "@/lib/types";
 import {
   loadExplorerSnapshot,
@@ -141,6 +142,10 @@ export default function TransactionExplorer({
     [scheduleSnapshotSave],
   );
 
+  // The list's fetches live as long as this component does: navigating away
+  // cancels a page that is still on its way.
+  const scope = useAbortScope();
+
   const loadMore = useCallback(() => {
     if (loadingRef.current) return;
     loadingRef.current = true;
@@ -149,11 +154,18 @@ export default function TransactionExplorer({
     setLoading(true);
     setError(null);
 
-    return gqlFetch(PUBLIC_GRAPHQL_URL, PAGE_QUERY, {
-      limit: PAGE_SIZE,
-      cursor,
-    }, { signal: controller.signal })
+    // Supersedes any page still in flight: leaving the page mid-request must
+    // not let that request land afterwards and write into state.
+    const req = scope.next();
+
+    return gqlFetch(
+      PUBLIC_GRAPHQL_URL,
+      PAGE_QUERY,
+      { limit: PAGE_SIZE, cursor },
+      { signal: req.signal },
+    )
       .then((data) => {
+        if (!req.isCurrent()) return;
         const page = data.transactions;
 
         setTxs((current) => {
@@ -171,19 +183,19 @@ export default function TransactionExplorer({
         );
       })
       .catch(() => {
-        if (controller.signal.aborted) return;
+        if (!req.isCurrent()) return;
         setError("Could not load more transactions.");
         // Stop the sentinel from immediately retrying in a tight loop; the
         // explicit retry button puts the user back in control.
         setHasNextPage(false);
       })
       .finally(() => {
-        if (requestControllerRef.current !== controller) return;
-        requestControllerRef.current = null;
+        // The spinner resolves however the request ended — a cancelled one
+        // settles immediately — but only this request's data is ever applied.
         loadingRef.current = false;
         setLoading(false);
       });
-  }, [cursor]);
+  }, [scope, cursor]);
 
   // ── Return to where the reader was ──────────────────────────────────────
   //
